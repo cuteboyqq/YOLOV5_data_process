@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 10 17:32:44 2021
+
+@author: ali
+"""
+
+import os
+import shutil
+import glob
+
+
+linux = True
+window = False
+def Analysis_path(path):
+    if linux:
+        file = path.split("/")[-1]
+    else:
+        file = path.split("\\")[-1]
+    file_name =   file.split(".")[0]
+    if not file_name=="classes":
+        file_name_num = file_name.split("--")[1]
+    else:
+        file_name_num = ""
+    return file,file_name,file_name_num
+
+
+txt_dir = "/home/ali/YOLOV5/runs/detect/exp40/labels"
+jpg_dir = "/home/ali/Downloads/archive/dayTrain/dayTrain/dayClip3/frames"
+
+class_path = "/home/ali/datasets-smallTLR/classes.txt"
+
+save_folder_name = jpg_dir.split("/")[-2]
+
+
+save_dir = "/home/ali/YOLOV5/runs/detect/exp40/"
+
+save_dir = os.path.join(save_dir,save_folder_name)
+
+
+
+
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
+
+#=======copy classes.txt=============
+shutil.copy(class_path,save_dir)
+
+skip_frame = 40
+txt_path_list = glob.iglob(os.path.join(txt_dir,"*.txt"))
+c = 0
+for txt_path in txt_path_list:
+    #print(c," : ",txt_path)
+    c+=1
+    file,file_name,file_name_num = Analysis_path(txt_path)
+    print(file,file_name,file_name_num)
+    
+    if c % skip_frame == 0:
+        #================copy image=========================================
+        img_file_name = file_name + ".jpg"
+        img_file_path = os.path.join(jpg_dir,img_file_name)
+        save_img_file_name = file_name + ".jpg"
+        save_img_file_path = os.path.join(save_dir,save_img_file_name)
+        shutil.copy(img_file_path,save_img_file_path)
+        #===============copy label txt===========================================
+        #save_txt_file_path = os.path.join(save_dir,file)
+        shutil.copy(txt_path,save_dir)
