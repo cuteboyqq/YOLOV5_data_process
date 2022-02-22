@@ -35,9 +35,15 @@ def colorstr(*input):
               'underline': '\033[4m'}
     return ''.join(colors[x] for x in args) + f'{string}' + colors['end']
 
-def img2label_path(img_path,folder_name='labels',f_name=''):
+def img2label_path(img_path,folder_name='merge_labels_for_train',f_name=''):
     sa, sb = os.sep + 'images' + os.sep, os.sep + folder_name + os.sep
     return sb.join(img_path.rsplit(sa,1)).rsplit('.')[0] + f_name + '.txt'
+
+
+def Analysis_path(label_path):
+    file  = label_path.split(os.sep)[-1]
+    filename = file.split(".")[0]
+    return file,filename
 
 def Get_filtered_dataset_by_label(img_dir,label_list,save_dir):
     
@@ -51,25 +57,63 @@ def Get_filtered_dataset_by_label(img_dir,label_list,save_dir):
         
         label_path = img2label_path(img_path)
         #print(c," ",label_path)
-        
-        f_label = open(label_path,'r')
-        lines = f_label.readlines()
-        for line in lines:
-            #print(line)
-            label = line.split(" ")[0]
-            #print(label)
-            if int(label) in label_list:
-                #print("In label list~~~~")
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
-                shutil.copy(img_path,save_dir)
-                shutil.copy(label_path,save_dir)
-                c+=1
+        if os.path.exists(label_path):
+            f_label = open(label_path,'r')
+            lines = f_label.readlines()
+            for line in lines:
+                #print(line)
+                label = line.split(" ")[0]
+                #print(label)
+                if int(label) in label_list:
+                    #print("In label list~~~~")
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
+                    shutil.copy(img_path,save_dir)
+                    shutil.copy(label_path,save_dir)
+                    c+=1
     print("find ",c," datas")
+    
+    
+def Get_wanted_labels_txt(wanted_label_list,img_dir,save_dir):
+     img_path_list = glob.glob(os.path.join(img_dir,"*.jpg"))
+     PREFIX = colorstr('find wanted label datasets :')
+     pbar = tqdm.tqdm(img_path_list,desc=f'{PREFIX}')
+     for img_path in pbar:
+         label_path = img2label_path(img_path)
+         if os.path.exists(label_path):
+             
+             file,filename = Analysis_path(label_path)
+             
+             f_label = open(label_path,'r')
+             lines = f_label.readlines()
+             for line in lines:
+                 label = line.split(" ")[0]
+                 #print(label)
+                 if int(label) in wanted_label_list:
+                     if not os.path.exists(save_dir):
+                         os.makedirs(save_dir)
+                     new_label_path = os.path.join(save_dir,file)
+            
+                     new_f_label = open(new_label_path,'a')
+                     new_f_label.write(line)
+                     new_f_label.close()
+            
+                 #print("matcch label")
                 
 if __name__=="__main__":
-    img_dir = r"/home/ali/datasets/bdd100k-TLs/train/labeled/images"
-    label_list = [10,12,13,14,15]
-    save_dir = r"/home/ali/datasets/bdd100k-TLs/train/labeled/TL-directions-for-labelImg"
-    Get_filtered_dataset_by_label(img_dir,label_list,save_dir)
+    '''
+    names: ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts', 'off ts',
+            'red left ts', 'stop sign', 'green straight ts', 'green right ts', 'red right ts', 'green left ts', 'rider']
+    '''
+    #img_dir = r"/home/ali/datasets/LISA_NewYork_COCO_BSTLD_NoCopy_11/train/images"
+    #img_dir = r"/home/ali/datasets/LISA_NewYork_COCO_BSTLD_NoCopy_11/train/images"
+    #label_list = [4,6,8,10,12,13,14,15]
+    #WPI datasets filter R,G,OFF,Yellow
+    #label_list = [0,1,2,3,5,7,10,11,12,13,14,15,16]
+    #save_dir = r"/home/ali/datasets/LISA_NewYork_COCO_BSTLD_NoCopy_11/train/include_TLs"
+    #Get_filtered_dataset_by_label(img_dir,label_list,save_dir)
     
+    img_dir = r"/home/ali/datasets/WPI/for_train/images"
+    wanted_label_list = [0,1,2,3,5,7,8,10,12,13,14,15]
+    save_dir = r"/home/ali/datasets/WPI/for_train/final_label"
+    Get_wanted_labels_txt(wanted_label_list,img_dir,save_dir)
