@@ -15,7 +15,16 @@ def Analysis_label_txt_path(label_txt_path):
     txt_file = label_txt_path.split("/")[-1]
     txt_name = txt_file.split(".")[0]
     return txt_file,txt_name
-
+'''
+============================================================================================
+def Filter_coco_class(train_label_dir,
+                      save_new_train_label_dir,
+                      train_image_dir,
+                      save_new_train_image_dir,
+                      label_list)
+The function is able to get the dataset including the wanted label, so the unwanted label will be filter out
+=============================================================================================================
+'''
 def Filter_coco_class(train_label_dir,
                       save_new_train_label_dir,
                       train_image_dir,
