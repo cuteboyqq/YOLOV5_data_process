@@ -64,6 +64,19 @@ def Filter_coco_class(train_label_dir,
                     shutil.copy(train_image_path,save_new_train_image_dir)
                     save_count+=1
                     print(save_count,' save image :',img_file)
+'''
+===========================================================================================
+
+def Filter_data_by_class(input_img_dir, 
+                         output_img_dir,
+                         input_label_dir,
+                         output_label_dir,
+                         wanted_label_list):
+
+Note: This funtion  is able to  get datasset including directional TS by giving the list of directional TS labels 
+
+=============================================================================================
+'''
 
 def Filter_data_by_class(input_img_dir, 
                          output_img_dir,
