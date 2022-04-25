@@ -130,9 +130,9 @@ if __name__=="__main__":
     #Get_filtered_dataset_by_label(img_dir,label_list,save_dir,for_labelImg)
     
     #img_dir = r"/home/ali/datasets/WPI/for_train/images"
-    img_dir = r"/home/ali/datasets/bdd100k_supersmall_WPI/images/val"
+    img_dir = r"/home/ali/datasets/bdd100k_supersmall_WPI/images/train"
     #wanted_label_list = [0,1,2,3,5,7,8,10,12,13,14,15]
-    wanted_label_list = [0,1,2,3,4,5,6,7,8,10,11,12,13,14,15,16,17,18]
+    wanted_label_list = [0,1,2,3,4,5,6,7,8,10,12,13,14,15,16,17,18] #remove 9 and 11
     #save_dir = r"/home/ali/datasets/WPI/for_train/final_label"
-    save_dir = r"/home/ali/datasets/bdd100k_supersmall_WPI/labels/val_label_without_OFF"
+    save_dir = r"/home/ali/datasets/bdd100k_supersmall_WPI/labels/train_label_without_OFF_STOPSIGN"
     Get_wanted_labels_txt(wanted_label_list,img_dir,save_dir)
