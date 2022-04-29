@@ -16,7 +16,7 @@ from tqdm import tqdm
 import random
 
 
-init_anchor = [ [10,13, 16,30, 33,23],
+init_size = [ [10,13, 16,30, 33,23],
           [30,61, 62,45, 59,119],
           [116,90, 156,198, 373,326]]
 
