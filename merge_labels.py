@@ -14,6 +14,7 @@ import tqdm
 
 
 '''=========================Merge 19 classes into 13 classes============================================================='''
+'''
 #19 classes
 class_name = ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts', 'off ts',
         'red left ts', 'stop sign', 'green straight ts', 'green right ts', 'red right ts', 'green left ts', 'rider','yellow left ts','yellow right ts']
@@ -21,7 +22,7 @@ class_name = ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green 
 #13 classes (after process remove off ts  and stop sign)
 new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'red left ts', 'red right ts', 
                   'green left ts', 'green right ts', 'green straight ts', 'yellow left ts', 'yellow right ts']
-
+'''
 '''========================================================================================================================'''
 #class_name =     ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts',
         #'red left ts', 'stop sign', 'green straight ts' , 'green right ts', 'red right ts', 'green left ts', 'rider','yellow left ts','yellow right ts']
@@ -35,8 +36,15 @@ new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', '
 #new_class_name = ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts',
         #'red left ts', 'stop sign', 'green straight ts', 'green right ts', 'red right ts', 'green left ts', 'rider','yellow left ts','yellow right ts']
 
+#19 classes
+#class_name = ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts', 'off ts',
+#        'red left ts', 'stop sign', 'green straight ts', 'green right ts', 'red right ts', 'green left ts', 'rider','yellow left ts','yellow right ts']
+#new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'directional ts']
 
-#new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'directional ts', 'stop sign']
+
+class_name = ['rider','car','person'] # NCTU labels
+new_class_name =['person', 'rider', 'car'] # Alister lables
+
 counter = {}
 for c in new_class_name:
     counter[c] = 0
@@ -166,7 +174,7 @@ def get_args():
     
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('-l','--labels',help="labels dir",type=str, default='/home/ali/datasets/bdd100k_supersmall_WPI/labels/')
+    parser.add_argument('-l','--labels',help="labels dir",type=str, default='/home/ali/datasets/WNC/labels/')
     parser.add_argument('-t','--type',help="type of datasets", choices=['train','val'],default='train')
     parser.add_argument('--log','--view-log',action='store_true',help="show detail of merge labels")
     return parser.parse_args()    
@@ -233,28 +241,44 @@ if __name__=="__main__":
     class_name = [0'person', 1'bicycle', 2'car', 3'motorcycle', 4'red ts', 5'bus', 6'green ts', 7'truck', 8'yellow ts', 9'off ts',
             10'red left ts', 11'stop sign', 12'green straight ts', 13'green right ts', 14'red right ts', 15'green left ts', 16'rider',17'yellow left ts',18'yellow right ts']
     
-    8 classes (after process remove off ts)
+    7 classes (after process remove off ts)
     new_class_name = [0'person', 1'rider', 2'car', 3'red ts', 4'green ts', 5'yellow ts', 6'directional ts', 7'stop sign']
     ori_class = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
-    new_class = [0, 1, 2, 1, 3, 2, 4, 2, 5, 4,  6,  7,  6,  6,  6,  6,  1,  6,  6]
+    new_class = [0, 1, 2, 1, 3, 2, 4, 2, 5, 4,  6,  4,  6,  6,  6,  6,  1,  6,  6]
     
     ================================================================
     '''
+    
+    '''
+    =====================================================================
+    2022-05-07 WNC 5000 datasets  NCTU labels mapping to Alister labels
+    
+    #3 classes
+    class_name = ['rider','car','person'] # NCTU labels
+    new_class_name =['person', 'rider', 'car'] # Alister lables
+    
+    ori_class = [0,1,2]
+    new_class = [1,2,0]
+    =========================================================================
+    '''
+    
     
     #new_class_name = ['person', 'rider', 'car', 'stop sign', 'red ts', 'green ts', 'off ts', 'yellow ts', 'red left ts', 'red right ts', 'green left ts', 'green right ts', 'green straight ts',
                       #'yellow left ts', 'yellow right ts']
     #new_class_name = ['person', 'bicycle', 'car', 'motorcycle', 'red ts', 'bus', 'green ts', 'truck', 'yellow ts',
             #'red left ts', 'stop sign', 'green straight ts', 'green right ts', 'red right ts', 'green left ts', 'rider','yellow left ts','yellow right ts']
     #new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'directional ts', 'stop sign']
-    new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'red left ts', 'red right ts', 
-                      'green left ts', 'green right ts', 'green straight ts', 'yellow left ts', 'yellow right ts']
-   
+    #new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'red left ts', 'red right ts', 
+                      #'green left ts', 'green right ts', 'green straight ts', 'yellow left ts', 'yellow right ts']
+    #new_class_name = ['person', 'rider', 'car', 'red ts', 'green ts', 'yellow ts', 'directional ts']
     #save_new_bdd100k_label_dir = '/home/ali/bdd100k_merge_label/labels/val_test_new'
-    
+    new_class_name =['person', 'rider', 'car'] # Alister lables
+    ori_class = [0,1,2]
+    new_class = [1,2,0]
     #ori_class = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
     #new_class = [0,1,2,1,4,2,5,2,7,6, 8, 3,12,11, 9,10, 1,13,14]
-    ori_class = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-    new_class = [0,1,2,1,3,2,4,2,5,4, 6, 4,10, 9, 7, 8, 1,11,12]
+    #ori_class = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+    #new_class = [0, 1, 2, 1, 3, 2, 4, 2, 5, 4,  6,  4,  6,  6,  6,  6,  1,  6,  6]
     #new_class = [0,1,2,3,4,5,6,7,8,9, 9,10, 9, 9, 9, 9,11, 9, 9] 
     view_log = False
     Merge_BDD100K_labels(bdd100k_label_dir,
