@@ -21,9 +21,17 @@ def img2label_path(img_path):
     sb = os.sep + 'labels' + os.sep    
     return sb.join(img_path.rsplit(sa)).rsplit('.')[0]+ '.txt'
 
+TRAIN=True
+VAL=False
 
-img_dir = "/home/ali/datasets/factory_data/images/train"
-label_dir = "/home/ali/datasets/factory_data/labels/train"
+if TRAIN:
+    img_dir = "/home/ali/datasets/factory_data/images/train"
+    label_dir = "/home/ali/datasets/factory_data/labels/train"
+elif VAL:
+    img_dir = "/home/ali/datasets/factory_data/images/val"
+    label_dir = "/home/ali/datasets/factory_data/labels/val"
+    
+
 label_path_list = glob.iglob(os.path.join(label_dir,'*.txt'))
 img_path_list = glob.iglob(os.path.join(img_dir,'*.jpg'))
 
@@ -34,8 +42,10 @@ img_path_list = glob.iglob(os.path.join(img_dir,'*.jpg'))
 
 label_path_list = img2label_paths(img_path_list)
 
-
-save_txt_path = "/home/ali/datasets/factory_data/factory_data.txt"
+if TRAIN:
+    save_txt_path = "/home/ali/datasets/factory_data/factory_data.txt"
+elif VAL:
+    save_txt_path = "/home/ali/datasets/factory_data/factory_data_val.txt"
 
 #if not os.path.exists(save_txt_path):
     #os.makedirs(save_txt_path)
@@ -49,9 +59,11 @@ with open(save_txt_path,'w') as final_f:
         print(img_path)
         img = cv2.imread(img_path)
         h,w,c = img.shape
-        line.append(img_path)
-        line.append(' ')
         label_path = img2label_path(img_path)
+        if os.path.exists(label_path):
+            line.append(img_path)
+            line.append(' ')
+        
         print(label_path)
         if os.path.exists(label_path):
             f = open(label_path,'r')
