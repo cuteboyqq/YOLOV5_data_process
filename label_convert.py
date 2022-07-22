@@ -21,15 +21,15 @@ def img2label_path(img_path):
     sb = os.sep + 'labels' + os.sep    
     return sb.join(img_path.rsplit(sa)).rsplit('.')[0]+ '.txt'
 
-TRAIN=True
-VAL=False
+TRAIN=False
+VAL=True
 
 if TRAIN:
-    img_dir = "/home/ali/datasets/factory_data/images/train"
-    label_dir = "/home/ali/datasets/factory_data/labels/train"
+    img_dir = "/home/ali/factory_video/images/train"
+    label_dir = "/home/ali/factory_video/labels/train"
 elif VAL:
-    img_dir = "/home/ali/datasets/factory_data/images/val"
-    label_dir = "/home/ali/datasets/factory_data/labels/val"
+    img_dir = "/home/ali/factory_video/images/val"
+    label_dir = "/home/ali/factory_video/labels/val"
     
 
 label_path_list = glob.iglob(os.path.join(label_dir,'*.txt'))
@@ -43,14 +43,20 @@ img_path_list = glob.iglob(os.path.join(img_dir,'*.jpg'))
 label_path_list = img2label_paths(img_path_list)
 
 if TRAIN:
-    save_txt_path = "/home/ali/datasets/factory_data/factory_data.txt"
+    save_txt_path = "/home/ali/factory_video/factory_data_20220722.txt"
 elif VAL:
-    save_txt_path = "/home/ali/datasets/factory_data/factory_data_val.txt"
+    save_txt_path = "/home/ali/factory_video/factory_data_val_20220722.txt"
 
 #if not os.path.exists(save_txt_path):
     #os.makedirs(save_txt_path)
 import cv2
 line=[]
+X1Y1X2Y2 = False
+if not X1Y1X2Y2:
+    Y1X1Y2X2 = True
+else:
+    Y1X1Y2X2 = False
+    
 with open(save_txt_path,'w') as final_f:
     #final_f.write("Create a new file")
     img_path_list = glob.iglob(os.path.join(img_dir,'*.jpg'))
@@ -59,6 +65,7 @@ with open(save_txt_path,'w') as final_f:
         print(img_path)
         img = cv2.imread(img_path)
         h,w,c = img.shape
+        print('h: {}, w:{}, c:{}'.format(h,w,c))
         label_path = img2label_path(img_path)
         if os.path.exists(label_path):
             line.append(img_path)
@@ -73,12 +80,22 @@ with open(save_txt_path,'w') as final_f:
                 l_list = l.split(" ")
                 print('l_list[0] = {}'.format(l_list[0]))
                 new_l_list = [0,0,0,0,0]
-                #convert lxywh into x1,y1,x2,y2,l
-                new_l_list[0] = str( int(float(l_list[1])*w) )
-                new_l_list[1] = str( int(float(l_list[2])*h) )
-                new_l_list[2] = str( int(float(l_list[1])*w + (float(l_list[3])*w/2.0)) ) 
-                new_l_list[3] = str( int(float(l_list[2])*h + (float(l_list[4])*h/2.0)) )
-                print('2. l_list[0] = {}'.format(l_list[0]))
+                
+                if X1Y1X2Y2:
+                    #convert lxywh into x1,y1,x2,y2,l
+                    new_l_list[0] = str( int(float(l_list[1])*w) )
+                    new_l_list[1] = str( int(float(l_list[2])*h) )
+                    new_l_list[2] = str( int(float(l_list[1])*w + (float(l_list[3])*w/2.0)) ) 
+                    new_l_list[3] = str( int(float(l_list[2])*h + (float(l_list[4])*h/2.0)) )
+                    print('2. l_list[0] = {}'.format(l_list[0]))
+                    
+                elif Y1X1Y2X2:
+                    #convert lxywh into y1,x1,y2,x2,l
+                    new_l_list[1] = str( int(float(l_list[1])*w) )
+                    new_l_list[0] = str( int(float(l_list[2])*h) )
+                    new_l_list[3] = str( int(float(l_list[1])*w + (float(l_list[3])*w/2.0)) ) 
+                    new_l_list[2] = str( int(float(l_list[2])*h + (float(l_list[4])*h/2.0)) )
+                    print('2. l_list[0] = {}'.format(l_list[0]))
                 new_l_list[4] = l_list[0]
                 
                 new_line = ",".join(new_l_list)
