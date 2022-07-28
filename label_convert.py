@@ -21,8 +21,8 @@ def img2label_path(img_path):
     sb = os.sep + 'labels' + os.sep    
     return sb.join(img_path.rsplit(sa)).rsplit('.')[0]+ '.txt'
 
-TRAIN=False
-VAL=True
+TRAIN=True
+VAL=False
 
 if TRAIN:
     img_dir = "/home/ali/factory_video/images/train"
@@ -43,15 +43,15 @@ img_path_list = glob.iglob(os.path.join(img_dir,'*.jpg'))
 label_path_list = img2label_paths(img_path_list)
 
 if TRAIN:
-    save_txt_path = "/home/ali/factory_video/factory_data_20220722.txt"
+    save_txt_path = "/home/ali/factory_video/images/factory_data_noaug_20220728.txt"
 elif VAL:
-    save_txt_path = "/home/ali/factory_video/factory_data_val_20220722.txt"
+    save_txt_path = "/home/ali/factory_video/images/factory_data_val_blur9_20220728.txt"
 
 #if not os.path.exists(save_txt_path):
     #os.makedirs(save_txt_path)
 import cv2
 line=[]
-X1Y1X2Y2 = False
+X1Y1X2Y2 = True
 if not X1Y1X2Y2:
     Y1X1Y2X2 = True
 else:
@@ -82,19 +82,19 @@ with open(save_txt_path,'w') as final_f:
                 new_l_list = [0,0,0,0,0]
                 
                 if X1Y1X2Y2:
-                    #convert lxywh into x1,y1,x2,y2,l
-                    new_l_list[0] = str( int(float(l_list[1])*w) )
-                    new_l_list[1] = str( int(float(l_list[2])*h) )
-                    new_l_list[2] = str( int(float(l_list[1])*w + (float(l_list[3])*w/2.0)) ) 
-                    new_l_list[3] = str( int(float(l_list[2])*h + (float(l_list[4])*h/2.0)) )
+                    #convert (l,x_center,y_center,w,h) into (x_topleft, y1_topleft, x2_downright, y2_downright,l)
+                    new_l_list[0] = str( int( float(l_list[1])*w - float(l_list[3])*w/2.0 ) ) #x_topleft = x_center - w/2.0
+                    new_l_list[1] = str( int( float(l_list[2])*h - float(l_list[4])*h/2.0 ) ) #y1_topleft = y_center - h/2.0
+                    new_l_list[2] = str( int( float(l_list[1])*w + float(l_list[3])*w/2.0 ) ) #x2_downright = x_center + w/2.0
+                    new_l_list[3] = str( int( float(l_list[2])*h + float(l_list[4])*h/2.0 ) ) #y2_downright = y_center + h/2.0
                     print('2. l_list[0] = {}'.format(l_list[0]))
                     
                 elif Y1X1Y2X2:
                     #convert lxywh into y1,x1,y2,x2,l
-                    new_l_list[1] = str( int(float(l_list[1])*w) )
-                    new_l_list[0] = str( int(float(l_list[2])*h) )
-                    new_l_list[3] = str( int(float(l_list[1])*w + (float(l_list[3])*w/2.0)) ) 
-                    new_l_list[2] = str( int(float(l_list[2])*h + (float(l_list[4])*h/2.0)) )
+                    new_l_list[1] = str( int( float(l_list[1])*w - float(l_list[3])*w/2.0 ) ) #x_topleft = x_center - w/2.0
+                    new_l_list[0] = str( int( float(l_list[2])*h - float(l_list[4])*h/2.0 ) ) #y1_topleft = y_center - h/2.0
+                    new_l_list[3] = str( int( float(l_list[1])*w + float(l_list[3])*w/2.0 ) ) #x2_downright = x_center + w/2.0
+                    new_l_list[2] = str( int( float(l_list[2])*h + float(l_list[4])*h/2.0 ) ) #y2_downright = y_center + h/2.0
                     print('2. l_list[0] = {}'.format(l_list[0]))
                 new_l_list[4] = l_list[0]
                 
