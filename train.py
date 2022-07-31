@@ -13,7 +13,7 @@ import tqdm
 
 
 flags.DEFINE_string('model', 'yolov4', 'yolov4, yolov3')
-flags.DEFINE_string('weights', './scripts/yolov4.weights', 'pretrained weights')
+flags.DEFINE_string('weights', None, 'pretrained weights')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 
 
@@ -91,12 +91,12 @@ def main(_argv):
 
     if FLAGS.weights == None:
         print("Training from scratch")
-    #else:
-    #    if FLAGS.weights.split(".")[len(FLAGS.weights.split(".")) - 1] == "weights":
-    #        utils.load_weights(model, FLAGS.weights, FLAGS.model, FLAGS.tiny)
-    #    else:
-    #        model.load_weights(FLAGS.weights)
-    #    print('Restoring weights from: %s ... ' % FLAGS.weights)
+    else:
+        if FLAGS.weights.split(".")[len(FLAGS.weights.split(".")) - 1] == "weights":
+            utils.load_weights(model, FLAGS.weights, FLAGS.model, FLAGS.tiny)
+        else:
+            model.load_weights(FLAGS.weights)
+        print('Restoring weights from: %s ... ' % FLAGS.weights)
 
 
     optimizer = tf.keras.optimizers.Adam()
@@ -183,6 +183,8 @@ def main(_argv):
         
         pbar_train = tqdm.tqdm(trainset)
         pbar_test = tqdm.tqdm(testset)
+        print(' Train Epoch  Total_loss  giou_loss  conf_loss  prob_loss')
+        print('==========================================================')
         for image_data, target in pbar_train:
             total_loss_train,giou_loss,conf_loss,prob_loss = train_step(image_data, target, epoch)
             
@@ -191,32 +193,38 @@ def main(_argv):
             conf_loss =  float(int(conf_loss.numpy()*100)/100.0)
             prob_loss =  float(int(prob_loss.numpy()*100)/100.0)
             
-            bar_str = 'Train Epoch:' + str(epoch) + ' Total loss:'+ str(total_loss_train)\
-                      +' ,giou_loss:' + str(giou_loss)\
-                      + ' ,conf_loss:' + str(conf_loss)\
-                      + ' ,prob_loss:' + str(prob_loss)
+            
+            
+            
+            bar_str =   '     '+str(epoch+1) + '         '+ str(total_loss_train)\
+                      + '     ' + str(giou_loss)\
+                      + '     ' + str(conf_loss)\
+                      + '     ' + str(prob_loss)
             PREFIX = colorstr(bar_str)
             pbar_train.desc = f'{PREFIX}'
+        DO_VAL = True
+        if DO_VAL:
+            print('      Val Epoch  Total_loss  giou_loss  conf_loss  prob_loss')
+            print('     --------------------------------------------------------')
+            for image_data, target in pbar_test:
+                total_loss_val,giou_loss,conf_loss,prob_loss = test_step(image_data, target)
+                
+                total_loss_val =  float(int(total_loss_val*100)/100.0)
+                giou_loss =  float(int(giou_loss.numpy()*100)/100.0)
+                conf_loss =  float(int(conf_loss.numpy()*100)/100.0)
+                prob_loss =  float(int(prob_loss.numpy()*100)/100.0)
+                
+                bar_str =   '          '+str(epoch+1) + '         '+ str(total_loss_val)\
+                          + '     ' + str(giou_loss)\
+                          + '     ' + str(conf_loss)\
+                          + '     ' + str(prob_loss)
+                PREFIX = colorstr(bar_str)
+                pbar_test.desc = f'{PREFIX}'
             
-        for image_data, target in pbar_test:
-            total_loss_val,giou_loss,conf_loss,prob_loss = test_step(image_data, target)
             
-            total_loss_val =  float(int(total_loss_train*100)/100.0)
-            giou_loss =  float(int(giou_loss.numpy()*100)/100.0)
-            conf_loss =  float(int(conf_loss.numpy()*100)/100.0)
-            prob_loss =  float(int(prob_loss.numpy()*100)/100.0)
-            
-            bar_str = 'Validation Epoch:' + str(epoch) + ' Total loss:'+ str(total_loss_val)\
-                      +' ,giou_loss:' + str(giou_loss)\
-                      + ' ,conf_loss:' + str(conf_loss)\
-                      + ' ,prob_loss:' + str(prob_loss)
-            PREFIX = colorstr(bar_str)
-            pbar_test.desc = f'{PREFIX}'
-            
-            
-        tf.saved_model.save(model, './model')
-        model.save_weights("./checkpoints/yolov4")
-        model.save('./checkpoints_2/yolov4')
+        #tf.saved_model.save(model, './model')
+        #model.save_weights("./checkpoints_20220731/yolov4")
+        #model.save('./model_20220731')
 if __name__ == '__main__':
     try:
         app.run(main)
