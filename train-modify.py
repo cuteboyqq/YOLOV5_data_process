@@ -2,7 +2,11 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 import os
 import shutil
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
+import logging
+tf.get_logger().setLevel(logging.ERROR)
 #from core.yolov4 import YOLO, decode, compute_loss, decode_train
 from core.dataset import Dataset
 from core.config import cfg
@@ -15,9 +19,112 @@ import cv2
 from core.yolov4 import filter_boxes
 import glob
 import json
+from core.yolov4 import YOLO, decode, filter_boxes
 flags.DEFINE_string('model', 'yolov4', 'yolov4, yolov3')
 flags.DEFINE_string('weights', './checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4', 'pretrained weights')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
+#flags.DEFINE_string('weights', None, 'pretrained weights')
+flags.DEFINE_string('output', './checkpoints_yolov4_20220802_ciou_tf25_mosaic_aug/yolov4-416', 'path to output')
+flags.DEFINE_integer('input_size', 416, 'define input size of export model')
+flags.DEFINE_float('score_thres', 0.40, 'define score threshold')
+flags.DEFINE_string('framework', 'tf', 'define what framework do you want to convert (tf, trt, tflite)')
+flags.DEFINE_float('iou', 0.05, 'iou threshold')
+flags.DEFINE_float('score', 0.45, 'score threshold')
+
+def infer(batch_data, model):
+    STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
+    # batch_data = tf.constant(image_data)
+    feature_maps = model(batch_data)
+    bbox_tensors = []
+    prob_tensors = []
+    if FLAGS.tiny:
+        for i, fm in enumerate(feature_maps):
+            if i == 0:
+                output_tensors = decode(fm, FLAGS.input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE,
+                                        FLAGS.framework)
+            else:
+                output_tensors = decode(fm, FLAGS.input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE,
+                                        FLAGS.framework)
+            bbox_tensors.append(output_tensors[0])
+            prob_tensors.append(output_tensors[1])
+    else:
+        for i, fm in enumerate(feature_maps):
+            if i == 0:
+                output_tensors = decode(fm, FLAGS.input_size // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE,
+                                        FLAGS.framework)
+            elif i == 1:
+                output_tensors = decode(fm, FLAGS.input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE,
+                                        FLAGS.framework)
+            else:
+                output_tensors = decode(fm, FLAGS.input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE,
+                                        FLAGS.framework)
+            bbox_tensors.append(output_tensors[0])
+            prob_tensors.append(output_tensors[1])
+
+    pred_bbox = tf.concat(bbox_tensors, axis=1)
+    pred_prob = tf.concat(prob_tensors, axis=1)
+    if FLAGS.framework == 'tflite':
+        pred_bbox = (pred_bbox, pred_prob)
+    else:
+        boxes, pred_conf = filter_boxes(pred_bbox, pred_prob, score_threshold=FLAGS.score,
+                                        input_shape=tf.constant([FLAGS.input_size, FLAGS.input_size]))
+        pred_bbox = tf.concat([boxes, pred_conf], axis=-1)
+    boxes = pred_bbox[:, :, 0:4]
+    pred_conf = pred_bbox[:, :, 4:]
+
+
+    boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
+        boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
+        scores=tf.reshape(
+            pred_conf, (tf.shape(pred_conf)[0], -1, tf.shape(pred_conf)[-1])),
+        max_output_size_per_class=50,
+        max_total_size=50,
+        iou_threshold=FLAGS.iou,
+        score_threshold=FLAGS.score
+    )
+    #print('boxes:{}'.format(boxes))
+    return boxes, scores, classes, valid_detections
+
+def save_tf(weights):
+  STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
+
+  input_layer = tf.keras.layers.Input([FLAGS.input_size, FLAGS.input_size, 3])
+  feature_maps = YOLO(input_layer, NUM_CLASS, FLAGS.model, FLAGS.tiny)
+  bbox_tensors = []
+  prob_tensors = []
+  if FLAGS.tiny:
+    for i, fm in enumerate(feature_maps):
+      if i == 0:
+        output_tensors = decode(fm, FLAGS.input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE, FLAGS.framework)
+      else:
+        output_tensors = decode(fm, FLAGS.input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE, FLAGS.framework)
+      bbox_tensors.append(output_tensors[0])
+      prob_tensors.append(output_tensors[1])
+  else:
+    for i, fm in enumerate(feature_maps):
+      if i == 0:
+        output_tensors = decode(fm, FLAGS.input_size // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE, FLAGS.framework)
+      elif i == 1:
+        output_tensors = decode(fm, FLAGS.input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE, FLAGS.framework)
+      else:
+        output_tensors = decode(fm, FLAGS.input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE, FLAGS.framework)
+      bbox_tensors.append(output_tensors[0])
+      prob_tensors.append(output_tensors[1])
+  pred_bbox = tf.concat(bbox_tensors, axis=1)
+  pred_prob = tf.concat(prob_tensors, axis=1)
+  if FLAGS.framework == 'tflite':
+    pred = (pred_bbox, pred_prob)
+  else:
+    boxes, pred_conf = filter_boxes(pred_bbox, pred_prob, score_threshold=FLAGS.score_thres, input_shape=tf.constant([FLAGS.input_size, FLAGS.input_size]))
+    pred = tf.concat([boxes, pred_conf], axis=-1)
+  model = tf.keras.Model(input_layer, pred)
+  
+  #model.save_weights(FLAGS.weights)
+  #model.load_weights(FLAGS.weights)
+  model.load_weights(weights)
+  #utils.load_weights(model, FLAGS.weights, FLAGS.model, FLAGS.tiny)
+  model.summary()
+  model.save(FLAGS.output)
 
 
 def colorstr(*input):
@@ -175,7 +282,7 @@ def main(_argv):
     
     
         
-    def Validation(weights,INPUT_SIZE,framework,annotation_path,model,tiny,IOU,SCORE):
+    def Validation(weightss,INPUT_SIZE,framework,annotation_path,model,tiny,IOU,SCORE):
         #INPUT_SIZE = FLAGS.size
         STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
         CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
@@ -196,11 +303,15 @@ def main(_argv):
             interpreter.allocate_tensors()
             input_details = interpreter.get_input_details()
             output_details = interpreter.get_output_details()
-            print(input_details)
-            print(output_details)
+            #print(input_details)
+            #print(output_details)
         else:
-            saved_model_loaded = tf.saved_model.load(weights, tags=[tag_constants.SERVING])
-            infer = saved_model_loaded.signatures['serving_default']
+            inputs = tf.keras.layers.Input([FLAGS.input_size, FLAGS.input_size, 3])
+            outputs = YOLO(inputs, NUM_CLASS, FLAGS.model, FLAGS.tiny)
+            model = tf.keras.Model(inputs, outputs)
+            model.load_weights(weightss)
+            #saved_model_loaded = tf.saved_model.load(weightss, tags=[tag_constants.SERVING])
+            #infer = saved_model_loaded.signatures['serving_default']
 
         num_lines = sum(1 for line in open(annotation_path))
         with open(annotation_path, 'r') as annotation_file:
@@ -219,7 +330,7 @@ def main(_argv):
                     bboxes_gt, classes_gt = bbox_data_gt[:, :4], bbox_data_gt[:, 4]
                 ground_truth_path = os.path.join(ground_truth_dir_path, str(num) + '.txt')
 
-                print('=> ground truth of %s:' % image_name)
+                #print('=> ground truth of %s:' % image_name)
                 num_bbox_gt = len(bboxes_gt)
                 with open(ground_truth_path, 'w') as f:
                     for i in range(num_bbox_gt):
@@ -227,8 +338,8 @@ def main(_argv):
                         xmin, ymin, xmax, ymax = list(map(str, bboxes_gt[i]))
                         bbox_mess = ' '.join([class_name, xmin, ymin, xmax, ymax]) + '\n'
                         f.write(bbox_mess)
-                        print('\t' + str(bbox_mess).strip())
-                print('=> predict result of %s:' % image_name)
+                        #print('\t' + str(bbox_mess).strip())
+                #print('=> predict result of %s:' % image_name)
                 predict_result_path = os.path.join(predicted_dir_path, str(num) + '.txt')
                 # Predict Process
                 image_size = image.shape[:2]
@@ -247,11 +358,15 @@ def main(_argv):
                         boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25)
                 else:
                     batch_data = tf.constant(image_data)
-                    pred_bbox = infer(batch_data)
+                    boxes, scores, classes, valid_detections = infer(batch_data, model)
+                    
+                    #batch_data = tf.constant(image_data)
+                    #pred_bbox = infer(batch_data)
+                    '''
                     for key, value in pred_bbox.items():
                         boxes = value[:, :, 0:4]
                         pred_conf = value[:, :, 4:]
-
+                        
                 boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
                     boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
                     scores=tf.reshape(
@@ -261,6 +376,7 @@ def main(_argv):
                     iou_threshold=IOU,
                     score_threshold=SCORE
                 )
+                '''
                 boxes, scores, classes, valid_detections = [boxes.numpy(), scores.numpy(), classes.numpy(), valid_detections.numpy()]
 
                 # if cfg.TEST.DECTECTED_IMAGE_PATH is not None:
@@ -284,8 +400,8 @@ def main(_argv):
                         ymin, xmin, ymax, xmax = list(map(str, coor))
                         bbox_mess = ' '.join([class_name, score, xmin, ymin, xmax, ymax]) + '\n'
                         f.write(bbox_mess)
-                        print('\t' + str(bbox_mess).strip())
-                print(num, num_lines)
+                        #print('\t' + str(bbox_mess).strip())
+                #print(num, num_lines)
                 
     
     def precision_recall_mAP(output,draw_plot=True,show_animation=True,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=True,no_plot=False):
@@ -430,7 +546,7 @@ def main(_argv):
         gt_counter_per_class = {}
         
         for txt_file in ground_truth_files_list:
-          print(txt_file)
+          #print(txt_file)
           file_id = txt_file.split(".txt",1)[0]
           file_id = os.path.basename(os.path.normpath(file_id))
           # check if there is a correspondent predicted objects file
@@ -520,7 +636,7 @@ def main(_argv):
         for class_index, class_name in enumerate(gt_classes):
           bounding_boxes = []
           for txt_file in predicted_files_list:
-            print(txt_file)
+            #print(txt_file)
             # the first time it checks if all the corresponding ground-truth files exist
             file_id = txt_file.split(".txt",1)[0]
             file_id = os.path.basename(os.path.normpath(file_id))
@@ -543,7 +659,7 @@ def main(_argv):
                 #print("match")
                 bbox = left + " " + top + " " + right + " " +bottom
                 bounding_boxes.append({"confidence":confidence, "file_id":file_id, "bbox":bbox})
-                print(bounding_boxes)
+                #print(bounding_boxes)
           # sort predictions by decreasing confidence
           bounding_boxes.sort(key=lambda x:float(x['confidence']), reverse=True)
           with open(tmp_files_path + "/" + class_name + "_predictions.json", 'w') as outfile:
@@ -728,7 +844,7 @@ def main(_argv):
             #print(prec)
         
             ap, mrec, mprec = voc_ap(rec, prec)
-            print('ap, mrec, mprec = {}, {}, {}'.format(ap, mrec, mprec))
+            print('{} ap = {}'.format(class_name,ap))
            
             sum_AP += ap
             text = "{0:.2f}%".format(ap*100) + " = " + class_name + " AP  " #class_name + " AP = {0:.2f}%".format(ap*100)
@@ -738,8 +854,8 @@ def main(_argv):
             rounded_prec = [ '%.2f' % elem for elem in prec ]
             rounded_rec = [ '%.2f' % elem for elem in rec ]
             results_file.write(text + "\n Precision: " + str(rounded_prec) + "\n Recall   :" + str(rounded_rec) + "\n\n")
-            if not quiet:
-              print(text)
+            #if not quiet:
+              #print(text)
             ap_dictionary[class_name] = ap
         
             """
@@ -801,10 +917,11 @@ def main(_argv):
                     freeze = model.get_layer(name)
                     unfreeze_all(freeze)
         
-        pbar_train = tqdm.tqdm(trainset)
-        pbar_test = tqdm.tqdm(testset)
         print(' Train Epoch  Total_loss  giou_loss  conf_loss  prob_loss')
         print('==========================================================')
+        pbar_train = tqdm.tqdm(trainset,ncols=100)
+        pbar_test = tqdm.tqdm(testset,ncols=100)
+        
         Total_Train_Loss, Total_giou_loss, Total_conf_loss, Total_prob_loss = 0,0,0,0
         for image_data, target in pbar_train:
             total_loss_train,giou_loss,conf_loss,prob_loss = train_step(image_data, target, epoch)
@@ -866,13 +983,14 @@ def main(_argv):
             print('Val loss: {}, start to save model'.format(VAL_LOSS))
             #tf.saved_model.save(model, './model')
             model.save_weights("./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4")
+            #save_tf(weights='./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4')    
             #model.save('./model_20220731')
             
-            
+        
         annotation_path=r'/home/ali/YOLOV4-TF/data/dataset/factory_data_val_noaug_small.txt'
-        Validation('./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4-416',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.5)
+        Validation('./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.5)
         output = 'mAP/results'
-        precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=False,no_plot=False)
+        precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=True,no_plot=False)
         
     import csv
     result_path = './train/checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test.csv'
