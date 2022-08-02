@@ -404,7 +404,7 @@ def main(_argv):
                 #print(num, num_lines)
                 
     
-    def precision_recall_mAP(output,draw_plot=True,show_animation=True,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=True,no_plot=False):
+    def precision_recall_mAP(output,draw_plot=True,show_animation=True,ignore=[],set_class_iou=None,MINOVERLAP=0.5,quiet=True,no_plot=False):
         
         img_path = 'images'
         
@@ -919,8 +919,8 @@ def main(_argv):
         
         print(' Train Epoch  Total_loss  giou_loss  conf_loss  prob_loss')
         print('==========================================================')
-        pbar_train = tqdm.tqdm(trainset,ncols=130)
-        pbar_test = tqdm.tqdm(testset,ncols=130)
+        pbar_train = tqdm.tqdm(trainset,ncols=110)
+        pbar_test = tqdm.tqdm(testset,ncols=110)
         
         Total_Train_Loss, Total_giou_loss, Total_conf_loss, Total_prob_loss = 0,0,0,0
         for image_data, target in pbar_train:
@@ -979,10 +979,11 @@ def main(_argv):
                 VAL_LOSS = Total_Val_Loss
                 save_valloss_min_model = True
             records.append(['Val  ', epoch+1, Total_Val_Loss, Total_val_giou_loss, Total_val_conf_loss, Total_val_prob_loss])
-        if save_valloss_min_model:
-            print('Val loss: {}, start to save model'.format(VAL_LOSS))
+        #if save_valloss_min_model:
+        if True:
+            print('Val loss: {} , Total_Val_Loss : {} start to save model'.format(VAL_LOSS,Total_Val_Loss))
             #tf.saved_model.save(model, './model')
-            model.save_weights("./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4")
+            model.save_weights("./checkpoints_20220728/yolov4")
             #save_tf(weights='./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4')    
             #model.save('./model_20220731')
             
@@ -990,10 +991,10 @@ def main(_argv):
         annotation_path= './datasets/factory_data_val_blur9_20220728_small.txt'
         Validation('./checkpoints_20220728/yolov4',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.30)
         output = './mAP/results'
-        precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=True,no_plot=False)
+        precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=None,MINOVERLAP=0.01,quiet=True,no_plot=False)
         
     import csv
-    result_path = './train/checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test.csv'
+    result_path = './train/checkpoints_20220728.csv'
     result_dir = './train'
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
