@@ -21,7 +21,7 @@ import glob
 import json
 from core.yolov4 import YOLO, decode, filter_boxes
 flags.DEFINE_string('model', 'yolov4', 'yolov4, yolov3')
-flags.DEFINE_string('weights', './checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4', 'pretrained weights')
+flags.DEFINE_string('weights', './checkpoints_20220728/yolov4', 'pretrained weights')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 #flags.DEFINE_string('weights', None, 'pretrained weights')
 flags.DEFINE_string('output', './checkpoints_yolov4_20220802_ciou_tf25_mosaic_aug/yolov4-416', 'path to output')
@@ -517,7 +517,7 @@ def main(_argv):
         """
          Create a "tmp_files/" and "results/" directory
         """
-        tmp_files_path = "tmp_files"
+        tmp_files_path = "./tmp_files"
         if not os.path.exists(tmp_files_path): # if it doesn't exist already
           os.makedirs(tmp_files_path)
         results_files_path = output
@@ -919,8 +919,8 @@ def main(_argv):
         
         print(' Train Epoch  Total_loss  giou_loss  conf_loss  prob_loss')
         print('==========================================================')
-        pbar_train = tqdm.tqdm(trainset,ncols=100)
-        pbar_test = tqdm.tqdm(testset,ncols=100)
+        pbar_train = tqdm.tqdm(trainset,ncols=130)
+        pbar_test = tqdm.tqdm(testset,ncols=130)
         
         Total_Train_Loss, Total_giou_loss, Total_conf_loss, Total_prob_loss = 0,0,0,0
         for image_data, target in pbar_train:
@@ -987,9 +987,9 @@ def main(_argv):
             #model.save('./model_20220731')
             
         
-        annotation_path=r'/home/ali/YOLOV4-TF/data/dataset/factory_data_val_noaug_small.txt'
-        Validation('./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.5)
-        output = 'mAP/results'
+        annotation_path= './datasets/factory_data_val_blur9_20220728_small.txt'
+        Validation('./checkpoints_20220728/yolov4',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.30)
+        output = './mAP/results'
         precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=True,no_plot=False)
         
     import csv
