@@ -865,20 +865,28 @@ def main(_argv):
         if save_valloss_min_model:
             print('Val loss: {}, start to save model'.format(VAL_LOSS))
             #tf.saved_model.save(model, './model')
-            model.save_weights("./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4")
+            model.save_weights("./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4")
             #model.save('./model_20220731')
+            
+            
+        annotation_path=r'/home/ali/YOLOV4-TF/data/dataset/factory_data_val_noaug_small.txt'
+        Validation('./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4-416',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.5)
+        output = 'mAP/results'
+        precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=False,no_plot=False)
+        
     import csv
-    result_path = './train/checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug.csv'
+    result_path = './train/checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test.csv'
+    result_dir = './train'
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+    
     fields = ['data', 'Epoch', 'Total_loss', 'giou_loss', 'conf_loss', 'prob_loss']
     with open(result_path, 'w') as f:
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
         write.writerows(records)
-        #annotation_path=r'C:\YOLOV4-TF\datasets\factory_data_val_small.txt'
-        #Validation('./checkpoints_20220728/yolov4-416',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.5)
-        #output = 'mAP/results'
-        #precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=[],MINOVERLAP=0.5,quiet=False,no_plot=False)
+        
         
 if __name__ == '__main__':
     try:
