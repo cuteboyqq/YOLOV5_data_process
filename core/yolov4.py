@@ -288,18 +288,10 @@ def decode_trt(conv_output, output_size, NUM_CLASS, STRIDES, ANCHORS, i=0, XYSCA
     return pred_xywh, pred_prob
     # return tf.concat([pred_xywh, pred_conf, pred_prob], axis=-1)
 
-def filter_boxes(box_xywh, scores, score_threshold=0.4, input_shape=tf.constant([416, 416])):
-    print('scores: \n {}\n shape {}'.format(scores,scores.shape))
+def filter_boxes(box_xywh, scores, score_threshold=0.4, input_shape = tf.constant([416,416])):
     scores_max = tf.math.reduce_max(scores, axis=-1)
-    print('scores_max: \n',scores_max)
-    scores_max = tf.math.reduce_max(scores_max, axis=0) # New line
-    print('new scores_max: \n',scores_max)
+
     mask = scores_max >= score_threshold
-    print('mask:\n',mask)
-    mask = tf.repeat(tf.expand_dims(mask, 0), tf.shape(scores)[0], axis=0)  # New line
-    print('new mask:\n',mask)
-    print('box_xywh:\n',box_xywh)
-    print(box_xywh.shape)
     class_boxes = tf.boolean_mask(box_xywh, mask)
     pred_conf = tf.boolean_mask(scores, mask)
     class_boxes = tf.reshape(class_boxes, [tf.shape(scores)[0], -1, tf.shape(class_boxes)[-1]])
@@ -324,6 +316,103 @@ def filter_boxes(box_xywh, scores, score_threshold=0.4, input_shape=tf.constant(
     return (boxes, pred_conf)
 
 
+
+def filter_boxes_NonTF(box_xywh, scores, score_threshold=0.4, input_shape = 416.0):
+    SHOW_LOG = False
+    
+    scores_max =  []
+    for i in range(len(scores)):
+        for j in range(len(scores[i])):
+            max_val =  max(scores[i][j])
+            scores_max.append(max_val)
+    
+    mask = []
+    for i in range(len(scores_max)):
+        if scores_max[i] >=  score_threshold:
+            mask.append(True)
+        else:
+            mask.append(False)
+     
+    class_boxes = []
+    pred_conf = []
+    for i in range(len(box_xywh)):
+        for j in range(len(box_xywh[i])):
+            if mask[j]:
+                class_boxes.append(box_xywh[i][j]) #append will have empty error
+                pred_conf.append(scores[i][j]) #append will have empty error
+                '''
+                class_boxes_line = []
+                pred_conf_line = []
+                for k in range(len(box_xywh[i][j])):
+                    class_boxes_line.append(box_xywh[i][j][k])
+                class_boxes.append(class_boxes_line)
+                for k in range(len(scores[i][j])):
+                    pred_conf_line.append(scores[i][j][k])
+                pred_conf.append(pred_conf_line)
+                '''
+    box_xy = []
+    box_wh = []
+    for i in range(len(class_boxes)):
+        box_xy.append(class_boxes[i][:2])
+        box_wh.append(class_boxes[i][2:])
+                 
+    box_yx = []
+    box_hw = []
+    for i in range(len(box_xy)):
+       box_yx.append(box_xy[i][::-1])
+       box_hw.append(box_wh[i][::-1])
+    
+    box_mins  = [ (box_yx[i] - (box_hw[i]/2.0) ) / np.array(input_shape) for i in range(len(box_hw))]
+    box_maxes = [ (box_yx[i] + (box_hw[i]/2.0) ) / np.array(input_shape) for i in range(len(box_hw))]
+    
+    boxes = []
+    for i in range(len(box_mins)):
+        boxes.append([box_mins[i][0],box_mins[i][1],box_maxes[i][0],box_maxes[i][1]])
+    
+    if SHOW_LOG:
+        print('scores: \n {}\n shape {}'.format(scores,scores.shape))
+        print('scores_max.shape: \n',np.shape(scores_max))
+        #------------------------------------------------------------
+        print('mask.shape: {}'.format(np.shape(mask)))
+        #------------------------------------------------------------
+        print('box_xywh:\n',box_xywh)
+        print('box_xywh.shape:',box_xywh.shape)
+        #-------------------------------------------------------------
+        print('class_boxes:\n {}'.format(class_boxes))
+        print('class_boxes.shape: {}'.format(np.shape(class_boxes)))
+        print('pred_conf:\n {}'.format(pred_conf))
+        print('pred_conf.shape: {}'.format(np.shape(pred_conf)))
+        #---------------------------------------------------------
+        print('box_xy:\n {}'.format(box_xy))
+        print('box_xy shape:{}'.format(np.shape(box_xy)))
+        print('box_wh:\n {}'.format(box_wh))
+        print('box_wh shape:{}'.format(np.shape(box_wh)))
+        print('input_shape: {}'.format(input_shape))
+        #---------------------------------------------------------
+        print('box_yx:\n {}'.format(box_yx))
+        print('box_hw:\n {}'.format(box_hw))
+        #---------------------------------------------------------
+        print('box_mins :\n {}'.format(box_mins))
+        print('box_maxes :\n {}'.format(box_maxes))
+        print('box_mins & box_maxes : \n')
+        for i in range(len(box_mins)):
+            print(box_mins[i])
+            print(box_maxes[i])
+        #---------------------------------------------------
+        print('boxes : \n {}'.format(boxes))
+        print('boxes.shape \n {}'.format(np.shape(boxes)))
+        print('pred_conf :\n {}'.format(pred_conf))
+        print('pred_conf.shape: \n {}'.format(np.shape(pred_conf)))
+    if len(boxes)==0:
+        boxes = [[0.0,0.0,0.0,0.0]]
+        pred_conf = [[0.0,0.0,0.0]]
+    else:
+        boxes = [boxes]
+        pred_conf = [pred_conf]
+   
+    return (boxes, pred_conf)
+
+
 def compute_loss(pred, conv, label, bboxes, STRIDES, NUM_CLASS, IOU_LOSS_THRESH, i=0):
     conv_shape  = tf.shape(conv)
     batch_size  = conv_shape[0]
@@ -341,11 +430,11 @@ def compute_loss(pred, conv, label, bboxes, STRIDES, NUM_CLASS, IOU_LOSS_THRESH,
     respond_bbox  = label[:, :, :, :, 4:5]
     label_prob    = label[:, :, :, :, 5:]
 
-    giou = tf.expand_dims(utils.bbox_giou(pred_xywh, label_xywh), axis=-1)
+    ciou = tf.expand_dims(utils.bbox_ciou(pred_xywh, label_xywh), axis=-1)
     input_size = tf.cast(input_size, tf.float32)
 
     bbox_loss_scale = 2.0 - 1.0 * label_xywh[:, :, :, :, 2:3] * label_xywh[:, :, :, :, 3:4] / (input_size ** 2)
-    giou_loss = respond_bbox * bbox_loss_scale * (1- giou)
+    ciou_loss = respond_bbox * bbox_loss_scale * (1- ciou)
 
     iou = utils.bbox_iou(pred_xywh[:, :, :, :, np.newaxis, :], bboxes[:, np.newaxis, np.newaxis, np.newaxis, :, :])
     max_iou = tf.expand_dims(tf.reduce_max(iou, axis=-1), axis=-1)
@@ -362,11 +451,11 @@ def compute_loss(pred, conv, label, bboxes, STRIDES, NUM_CLASS, IOU_LOSS_THRESH,
 
     prob_loss = respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=label_prob, logits=conv_raw_prob)
 
-    giou_loss = tf.reduce_mean(tf.reduce_sum(giou_loss, axis=[1,2,3,4]))
+    ciou_loss = tf.reduce_mean(tf.reduce_sum(ciou_loss, axis=[1,2,3,4]))
     conf_loss = tf.reduce_mean(tf.reduce_sum(conf_loss, axis=[1,2,3,4]))
     prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=[1,2,3,4]))
 
-    return giou_loss, conf_loss, prob_loss
+    return ciou_loss, conf_loss, prob_loss
 
 
 
