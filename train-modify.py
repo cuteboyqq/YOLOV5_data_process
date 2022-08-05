@@ -24,11 +24,11 @@ flags.DEFINE_string('model', 'yolov4', 'yolov4, yolov3')
 flags.DEFINE_string('weights', './checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug/yolov4', 'pretrained weights')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 #flags.DEFINE_string('weights', None, 'pretrained weights')
-flags.DEFINE_string('output', './checkpoints_yolov4_20220802_ciou_tf25_mosaic_aug/yolov4', 'path to output')
+flags.DEFINE_string('output', './checkpoints_yolov4_20220804_ciou_tf25_mosaic_aug_tiny/yolov4-tiny', 'path to output')
 flags.DEFINE_integer('input_size', 416, 'define input size of export model')
-flags.DEFINE_float('score_thres', 0.40, 'define score threshold')
+flags.DEFINE_float('score_thres', 0.50, 'define score threshold')
 flags.DEFINE_string('framework', 'tf', 'define what framework do you want to convert (tf, trt, tflite)')
-flags.DEFINE_float('iou', 0.05, 'iou threshold')
+flags.DEFINE_float('iou', 0.10, 'iou threshold')
 flags.DEFINE_float('score', 0.45, 'score threshold')
 
 def infer(batch_data, model):
@@ -633,6 +633,8 @@ def main(_argv):
         predicted_files_list = glob.glob('./mAP/predicted/*.txt')
         predicted_files_list.sort()
         ap_list = []
+        final_mpre = 0
+        final_mrec = 0
         for class_index, class_name in enumerate(gt_classes):
           bounding_boxes = []
           for txt_file in predicted_files_list:
@@ -842,12 +844,27 @@ def main(_argv):
             for idx, val in enumerate(tp):
               prec[idx] = float(tp[idx]) / (fp[idx] + tp[idx])
             #print(prec)
-        
+            if len(rec)>0:  
+                m_mrec = float(sum(rec)/len(rec))
+            else:
+                m_mrec=0.0
+            if len(prec)>0:
+                m_mprec = float(sum(prec)/len(prec))
+            else:
+                m_mprec = 0.0
+            
+            final_mpre+=m_mprec
+            final_mrec+=m_mrec
+            #print('recall:')
+            #for i in range(len(rec)):
+                #print(rec[i])
+            #print('precision:')
+            #for i in range(len(prec)):
+                #print(prec[i])
             ap, mrec, mprec = voc_ap(rec, prec)
             #print('{} ap = {}'.format(class_name,ap))
             ap_list.append([class_name,ap])
-            m_mrec = np.mean(mrec)
-            m_mprec = np.mean(mprec)
+            
             
             sum_AP += ap
             text = "{0:.2f}%".format(ap*100) + " = " + class_name + " AP  " #class_name + " AP = {0:.2f}%".format(ap*100)
@@ -860,7 +877,8 @@ def main(_argv):
             #if not quiet:
               #print(text)
             ap_dictionary[class_name] = ap
-        
+            #text = "{}".format(class_name) +"{0:.3f}".format(m_mrec) + "{0:.3f}".format(m_mprec) + "{0:.3f}".format(ap)
+            #print(text)
             """
              Draw plot
             """
@@ -903,7 +921,10 @@ def main(_argv):
         
         # remove the tmp_files directory
         shutil.rmtree(tmp_files_path)
-        return mAP,m_mrec,m_mprec,ap_list
+        
+        final_mpre = float(final_mpre/n_classes)
+        final_mrec = float(final_mrec/n_classes)
+        return mAP,final_mrec,final_mpre,ap_list
         
     VAL_LOSS = 100000
     for epoch in range(first_stage_epochs + second_stage_epochs):
@@ -987,19 +1008,20 @@ def main(_argv):
         #if True:
             print('Best Val loss: {} , Total_Val_Loss : {} start to save best and current model'.format(VAL_LOSS,Total_Val_Loss))
             #tf.saved_model.save(model, './model')
-            model.save_weights("./checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_best/yolov4-best")
-            model.save_weights("./checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_2/yolov4")
+            model.save_weights("./checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny_best/yolov4-tiny-best")
+            model.save_weights("./checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny/yolov4-tiny")
             #save_tf(weights='./checkpoints_yolov4_20220729_ciou_tf25_mosaic_aug_test/yolov4')    
             #model.save('./model_20220731')
         else:
             print('Best Val loss: {} , Total_Val_Loss : {} start to save current model'.format(VAL_LOSS,Total_Val_Loss))
-            model.save_weights("./checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_2/yolov4")
+            model.save_weights("./checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny/yolov4")
         
         annotation_path= './data/dataset/factory_data_val_blur9_20220729.txt'
-        Validation('./checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_2/yolov4',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.30)
+        #annotation_path= './data/dataset/factory_data_val_noaug_small.txt'
+        Validation('./checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny/yolov4-tiny',INPUT_SIZE=416,framework='tf',annotation_path=annotation_path,model='yolov4',tiny=False,IOU=0.45,SCORE=0.30)
         output = './mAP/results'
         mAP, m_mrec, m_mprec, ap_list = precision_recall_mAP(output,draw_plot=True,show_animation=False,ignore=[],set_class_iou=None,MINOVERLAP=0.5,quiet=True,no_plot=False)
-        records.append(['Val  ', epoch+1, Total_Val_Loss, Total_val_giou_loss, Total_val_conf_loss, Total_val_prob_loss, m_mrec, m_mprec, mAP ])
+        records.append(['Val  ', epoch+1, Total_Val_Loss, Total_val_giou_loss, Total_val_conf_loss, Total_val_prob_loss, m_mprec, m_mrec, mAP ])
         mAP_text = "{0:.3f}".format(mAP)
         m_mrec_text = "{0:.3f}".format(m_mrec)
         m_mprec_text = "{0:.3f}".format(m_mprec)
@@ -1008,18 +1030,18 @@ def main(_argv):
                 
         full_text = '        ' + str(epoch+1) + '        ' + m_mprec_text + '        ' + m_mrec_text + '        ' + mAP_text
         PREFIX = colorstr(full_text)
-        column    = '    Val Epoch    precision    recall    mAP_0.5'
+        column    = '    Val Epoch    precision    recall    mAP@.5'
         
         print(column)
         print('    ----------------------------------------------')
         print(PREFIX)
         import csv
-        result_path = './checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_2/result.csv'
-        result_dir = './checkpoints_yolov4_20220803_ciou_tf25_mosaic_aug_2'
+        result_path = './checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny/result.csv'
+        result_dir = './checkpoints_yolov4_20220805_ciou_tf25_mosaic_aug_tiny'
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
         
-        fields = ['data', 'Epoch', 'Total_loss', 'giou_loss', 'conf_loss', 'prob_loss', 'precision', 'recall', 'mAP_0.5' ]
+        fields = ['data', 'Epoch', 'Total_loss', 'giou_loss', 'conf_loss', 'prob_loss', 'precision', 'recall', 'mAP@0.5' ]
         with open(result_path, 'w') as f:
             # using csv.writer method from CSV package
             write = csv.writer(f)
