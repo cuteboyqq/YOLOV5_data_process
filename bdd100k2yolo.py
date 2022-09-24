@@ -11,6 +11,17 @@ classes = [
     "bike",
     "car",
     "motor",
+    "bus",
+    "truck",
+    "rider",
+    "train"
+]
+'''
+classes = [
+    "person",
+    "bike",
+    "car",
+    "motor",
     "red ts",
     "bus",
     "green ts",
@@ -25,7 +36,7 @@ classes = [
     "green left ts",
     "rider"
 ]
-
+'''
 '''
 classes = [
     "traffic sign"
