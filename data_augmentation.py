@@ -331,7 +331,7 @@ def augment_blur(img,blur_type,blur_size,view_blurimg):
         plt.show()
     return imgs,titles
 
-def save_blur_img_and_labels(img,img_f,blur_type,blur_size,data_type,blur_name):
+def save_blur_img_and_labels(img,img_f,blur_type,blur_size,data_type,blur_name,no_save_txt):
     
     saved = False
     img_dir,f,f_name,path_dir_dir = Analysis_Path(img_f)
@@ -341,7 +341,8 @@ def save_blur_img_and_labels(img,img_f,blur_type,blur_size,data_type,blur_name):
     if blur_type>=1 and blur_type<=4:
         folder_name = 'blur_' + blur_name[blur_type] + '_' + str(blur_size)
         name = f_name + '_' + blur_name[blur_type] +'blur_' + str(blur_size) + '.jpg'
-        l_name = f_name + '_' + blur_name[blur_type] + 'blur_' + str(blur_size) + '.txt'
+        if not no_save_txt:
+            l_name = f_name + '_' + blur_name[blur_type] + 'blur_' + str(blur_size) + '.txt'
         save_img = img[blur_type]
     else:
         return saved
@@ -371,25 +372,27 @@ def save_blur_img_and_labels(img,img_f,blur_type,blur_size,data_type,blur_name):
     '''   
     if data_type==1 or data_type==0:
         path_dir = os.path.join(path_dir_dir,folder_name,'images','train')
-        label_path_dir = os.path.join(path_dir_dir,folder_name,'labels','train')
+        if not no_save_txt:
+            label_path_dir = os.path.join(path_dir_dir,folder_name,'labels','train')
     elif data_type==2:
         path_dir = os.path.join(path_dir_dir,folder_name,'images','val')
-        label_path_dir = os.path.join(path_dir_dir,folder_name,'labels','val')
+        if not no_save_txt:
+            label_path_dir = os.path.join(path_dir_dir,folder_name,'labels','val')
     if not os.path.exists(path_dir):
         os.makedirs(path_dir)
-    
-    if not os.path.exists(label_path_dir):
-        os.makedirs(label_path_dir)
+    if not no_save_txt:
+        if not os.path.exists(label_path_dir):
+            os.makedirs(label_path_dir)
         
     
     path = os.path.join(path_dir,name)
     cv2.imwrite(path,save_img)
-    
-    label_path = os.path.join(label_path_dir,l_name)
-    
-    if os.path.exists(label_f):
-        if not os.path.exists(label_path):
-            shutil.copy(label_f,label_path)
+    if not no_save_txt:
+        label_path = os.path.join(label_path_dir,l_name)
+    if not no_save_txt:
+        if os.path.exists(label_f):
+            if not os.path.exists(label_path):
+                shutil.copy(label_f,label_path)
     
     saved = True
     
@@ -414,7 +417,8 @@ def Data_Augmentation(path,
                       blur_aug=True,
                       blur_type=1,
                       blur_size=5,
-                      view_blurimg=True):
+                      view_blurimg=True,
+                      no_save_txt=False):
     prefix=''
     f = []  # image files
     IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
@@ -468,13 +472,14 @@ def Data_Augmentation(path,
             bar_str += ' Flip '
             flip_img = augment_flip(img,flip_type)
             save_flip_image(img_f,flip_img,data_type,flip_type,flip_folder_name)
-            labell = save_flip_label(img_f,ori_class, flip_class,data_type,flip_type,flip_folder_name)
+            if not no_save_txt:
+                labell = save_flip_label(img_f,ori_class, flip_class,data_type,flip_type,flip_folder_name)
                                  
         '''==============================Start Blur augmentation===================================================='''
         if blur_aug == True:
             bar_str += ' Blur '
             img_blur,blur_name = augment_blur(img_f,blur_type,blur_size,view_blurimg) #return img list
-            save_blur = save_blur_img_and_labels(img_blur,img_f,blur_type,blur_size,data_type,blur_name)
+            save_blur = save_blur_img_and_labels(img_blur,img_f,blur_type,blur_size,data_type,blur_name,no_save_txt)
         '''========================================================================================================='''
         bar_str += ' Augmentation:'
         PREFIX = colorstr(bar_str)
@@ -492,34 +497,38 @@ def get_args():
     
     parser = argparse.ArgumentParser()
     #'/home/ali/datasets/train_video/NewYork_train/train/images'
-    parser.add_argument('-imgdir','--img-dir',help='image dir',default='/home/ali/datasets/train_video/NewYork_train/train/images')
-    parser.add_argument('-imgsize','--img-size',type=int,help='image size',default=320)
+    parser.add_argument('-imgdir','--img-dir',help='image dir',default='/home/ali/datasets/factory_data/2022-12-17-labeled-rasp/images/train')
+    parser.add_argument('-imgsize','--img-size',type=int,help='image size',default=192)
     parser.add_argument('-maxnum','--max-num',type=int,help='max number of analysis images',default=200000)
+    parser.add_argument('-no-save-txt','--no-save-txt',action='store_true',help='do not store label.txt')
     '''======================hsv-augment parameter================================================='''
     parser.add_argument('-hsvaug','--hsv-aug',action='store_true',help='do hsv augment')
     parser.add_argument('-hsvname','--hsv-name',help='hsv aug folder name',default='aug_hsv')
-    parser.add_argument('-numhsvclass','--num-hsvclass',type=int,default=12,help='num of hsv class')
+    parser.add_argument('-numhsvclass','--num-hsvclass',type=int,default=6,help='num of hsv class')
     parser.add_argument('-hgain','--h-gain',type=float,default=0.0,help='h percentage')
     parser.add_argument('-sgain','--s-gain',type=float,default=0.0,help='s percentage')
-    parser.add_argument('-minhsvclass','--min-hsvclass',type=int,default=5,help='min hsv class')
+    parser.add_argument('-minhsvclass','--min-hsvclass',type=int,default=3,help='min hsv class')
     '''======================flip-augment parameter================================================='''
     parser.add_argument('-flipaug','--flip-aug',action='store_true',help='do flip augment')
-    parser.add_argument('-flipname','--flip-name',help='flip aug folder name',default='aug_flip')
-    parser.add_argument('-fliptype','--flip-type',type=int,default=2,help='0:flip lr/ud, 1:flip lr, 2:flip ud')
-    parser.add_argument('-datatype','--data-type',type=int,default=0,help='0:train/val, 1:train, 2:val')
+    parser.add_argument('-flipname','--flip-name',help='flip aug folder name',default='aug_flip')#aug_flip
+    parser.add_argument('-fliptype','--flip-type',type=int,default=1,help='0:flip lr/ud, 1:flip lr, 2:flip ud')
+    parser.add_argument('-datatype','--data-type',type=int,default=1,help='0:train/val, 1:train, 2:val')
     '''=====================blur-augment parameter=============================================================='''
     parser.add_argument('-blurtype','--blur-type',type=int,default=2,help='blur type : 0:original; 1:mean; 2:Gaussian; 3:median; 4:bilateral')
-    parser.add_argument('-blursize','--blur-size',type=int,default=7,help='filter size of blur')
+    parser.add_argument('-blursize','--blur-size',type=int,default=9,help='filter size of blur')
     parser.add_argument('-bluraug','--blur-aug',action='store_true',help='do blur augment')
     parser.add_argument('-viewblur','--view-blur',action='store_true',help='view blur images')
     
     return parser.parse_args()    
 
 if __name__=="__main__":
-    path =  "/home/ali/datasets/LISA_data/train/13/direction_TL/images"
-    img_size = 320
-    ori_class= [x for x in range(17)]
-    flip_class = [0,1,2,3,4,5,6,7,8,9,14,11,12,15,10,13,16]
+    #path =  "/home/ali/datasets/LISA_data/train/13/direction_TL/images"
+    #img_size = 320
+    #ori_class= [x for x in range(17)]
+    #flip_class = [0,1,2,3,4,5,6,7,8,9,14,11,12,15,10,13,16,18,17]
+    
+    ori_class= [x for x in range(2)]
+    flip_class = [0,1,2]
     
     
     args = get_args()
@@ -528,6 +537,7 @@ if __name__=="__main__":
     img_size = args.img_size
     max_num = args.max_num
     data_type = args.data_type
+    no_save_txt = args.no_save_txt
     '''============================='''
     do_hsv_aug = args.hsv_aug
     hsv_folder_name = args.hsv_name
@@ -552,7 +562,7 @@ if __name__=="__main__":
     print("img_size = ",img_size)
     print("max_num = ",max_num)
     print("data_type =",data_name[data_type])
-    
+    print("no_save_txt =",no_save_txt)
     print("==========================================")
     print("HSV-Augment:")
     print("do_hsv_aug =",do_hsv_aug)
@@ -577,7 +587,7 @@ if __name__=="__main__":
                       flip_class, #flip class label
                       img_size, #final size, (not used)
                       max_num, #max num
-                      False, #do_hsv_aug do hsv augment
+                      True, #do_hsv_aug do hsv augment
                       hsv_folder_name, #hsv aug save folder name
                       h_gain,
                       s_gain,
@@ -587,8 +597,10 @@ if __name__=="__main__":
                       data_type, # data type --> 0:train/val 1:train 2:val
                       num_hsv_class,# number of hsv aug labels , remove front and tail labels
                       min_hsvclass,# min_th
-                      False,# do blur_aug
+                      True,# do blur_aug
                       blur_type,#blur_type : 0:ori, 1:mean, 2:Gaussian, 3:median, 4:bilateral,5:all
                       blur_size, #blur size
-                      False) #view_blurimg
+                      False,
+                      False # True: do not save label.txt, False: save label.txt
+                      ) #view_blurimg
     
