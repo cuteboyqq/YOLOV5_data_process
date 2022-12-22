@@ -50,8 +50,8 @@ def augment_hsv(img_path, save_img_dir, hgain=0.5, sgain=0.5, vgain=0.5, do_he=F
         os.makedirs(save_dir)
     '''======================================================================'''
     num = int(num)
-    for i in range(num):
-        ra = (i+1) *  (float)(1/num)
+    for i in range(num*2):
+        ra = (i) *  (float)(1/num)
         lut_v = np.clip(x * ra, 0, 255).astype(dtype)
     
         img_hsv = cv2.merge((cv2.LUT(h, lut_h), cv2.LUT(s, lut_s), cv2.LUT(v, lut_v))).astype(dtype)
@@ -66,7 +66,7 @@ def augment_hsv(img_path, save_img_dir, hgain=0.5, sgain=0.5, vgain=0.5, do_he=F
         save_img_file = img_name + '_' + str(i) + '.jpg'
         save_img_file_path = os.path.join(save_dir,save_img_file)
         
-        if i > (num/3): 
+        if (i) > (num/5) and i!=(num): 
             cv2.imwrite(save_img_file_path,result_img)
         '''===================================save image====================================='''
         
@@ -173,19 +173,19 @@ def get_args():
     parser = argparse.ArgumentParser()
     
     '''============================input img/output img parameters setting================================='''
-    parser.add_argument('-imgdir','--img-dir',help='image dir',default='/home/ali/TLR/datasets/8/2022-06-17-datasets/Argos_BB/Argos_BB_32_part4')
-    parser.add_argument('-savedir','--save-dir',help='save aug-img dir',default='/home/ali/TLR/datasets')
+    parser.add_argument('-imgdir','--img-dir',help='image dir',default='/home/ali/datasets/factory_data/2022-12-21-4cls-cropimg/crops_line')
+    parser.add_argument('-savedir','--save-dir',help='save aug-img dir',default='/home/ali/datasets/factory_data/2022-12-21-4cls-cropimg/crops_line_aug')
     
     '''===================blur parameter settings=========================================================='''
     parser.add_argument('-blur','--blur',help='enable blur augment',action='store_true')
     parser.add_argument('-blurtype','--blur-type',help='blur type : 0:original; 1:mean; 2:Gaussian; 3:median; 4:bilateral',default=2)
-    parser.add_argument('-blursize','--blur-size',help='blur size',default=3)
+    parser.add_argument('-blursize','--blur-size',help='blur size',default=11)
     '''===================flip parameter settings=========================================================='''
     parser.add_argument('-flip','--flip',help='enable flip augment',action='store_true')
     parser.add_argument('-fliptype','--flip-type',help='flip type: 0:lrud, 1:lr, 2:ud' ,default=1)
     '''===================hsv parameter settings=========================================================='''
     parser.add_argument('-hsv','--hsv',help='enable hsv augment',action='store_true')
-    parser.add_argument('-numv','--numv',help='num of v' ,default=9)
+    parser.add_argument('-numv','--numv',help='num of v' ,default=3)
     
     return parser.parse_args()
 
