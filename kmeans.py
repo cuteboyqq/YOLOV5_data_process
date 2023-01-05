@@ -39,8 +39,8 @@ img_path=os.listdir('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/cro
 img_features,img_name=image_feature(img_path)
 
 #Creating Clusters
-k = 3
-clusters = KMeans(k, random_state = 40)
+k = 4
+clusters = KMeans(k, random_state = 80)
 clusters.fit(img_features)
 
 
@@ -56,12 +56,32 @@ if not os.path.exists('line2'):
     os.mkdir('line2')
 if not os.path.exists('line3'):
     os.mkdir('line3')
+if not os.path.exists('line4'):
+    os.mkdir('line4')
+if not os.path.exists('line5'):
+    os.mkdir('line5')
+if not os.path.exists('line6'):
+    os.mkdir('line6')
+if not os.path.exists('line7'):
+    os.mkdir('line7')
+if not os.path.exists('line8'):
+    os.mkdir('line8')
 # Images will be seperated according to cluster they belong
 for i in range(len(image_cluster)):
     if image_cluster['clusterid'][i]==0:
         shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line1')
-    if image_cluster['clusterid'][i]==1:
+    elif image_cluster['clusterid'][i]==1:
         shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line2')
-    else:
+    elif image_cluster['clusterid'][i]==2:
         shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line3')
+    elif image_cluster['clusterid'][i]==3:
+        shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line4')
+    elif image_cluster['clusterid'][i]==4:
+        shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line5')
+    elif image_cluster['clusterid'][i]==5:
+        shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line6')
+    elif image_cluster['clusterid'][i]==6:
+        shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line7')
+    else:
+        shutil.copy(os.path.join('/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_10/line', image_cluster['image'][i]), 'line8')
 
