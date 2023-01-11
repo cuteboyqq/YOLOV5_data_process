@@ -27,7 +27,7 @@ def cutout(im, p=1.0):
         h, w = im.shape[:2]
         scales = [0.5] * 1 + [0.25] * 2 + [0.125] * 4 + [0.0625] * 8 + [0.03125] * 16  # image size fraction
         min_value = min(h,w) - 1
-        print("im: {}".format(im.shape))
+        #print("im: {}".format(im.shape))
         for s in scales:
             #mask_h = random.randint(1, int(h * s))  # create random masks
             #mask_w = random.randint(1, int(w * s))
@@ -39,18 +39,25 @@ def cutout(im, p=1.0):
             
             #xmin = max(0, random.randint(0, w) - mask_w // 2)
             xmin = max(0, random.randint(0, min_value) - mask_w // 2)
-            ymin = xmin
+            #ymin = xmin
             #ymin = max(0, random.randint(0, h) - mask_h // 2)
+            ymin = max(0, random.randint(0, min_value) - mask_h // 2)
             #xmax = min(w, xmin + mask_w)
             xmax = min(min_value, xmin + mask_w)
-            if xmax-xmin==0:
-                xmax+=1
-            ymax = xmax
+            
+            #ymax = xmax
+            ymax = min(min_value, ymin + mask_h)
+            if not (xmax-xmin)==(ymax-ymin):
+                xmax = xmin + min((xmax-xmin),(ymax-ymin))
+                ymax = ymin + min((xmax-xmin),(ymax-ymin))
+            if ymin==ymax:
+                ymax = ymin + 1
+            if xmin==xmax:
+                xmax = xmin + 1
             #ymax = min(h, ymin + mask_h)
-    
             # apply random color mask
             #im[ymin:ymax, xmin:xmax] = [random.randint(64, 191) for _ in range(3)]
-            print("ymin:{} , ymax:{}, xmin:{}, xmax:{}".format(ymin,ymax,xmin,xmax))
+            #print("ymin:{} , ymax:{}, xmin:{}, xmax:{}".format(ymin,ymax,xmin,xmax))
             im[ymin:ymax, xmin:xmax] = list(reversed(list(zip(*im[ymin:ymax, xmin:xmax]))))
             #im[ymin:ymax, xmin:xmax] = list(zip(*im[ymin:ymax, xmin:xmax][::-1]))
             ##Rotation Method https://stackoverflow.com/questions/8421337/rotating-a-two-dimensional-array-in-python
@@ -88,9 +95,9 @@ if __name__ == "__main__":
             
             
             #cv2.imwrite(img_path, im_cutout)
-            
-            plt.imshow(im_cutout)
-            plt.show()
+            ##Show images
+            #plt.imshow(im_cutout)
+            #plt.show()
             
             #im_cutout.numpy()
             cv2.imwrite(img_path, im_cutout)
