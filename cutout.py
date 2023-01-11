@@ -26,19 +26,30 @@ def cutout(im, p=1.0):
     if random.random() < p:
         h, w = im.shape[:2]
         scales = [0.5] * 1 + [0.25] * 2 + [0.125] * 4 + [0.0625] * 8 + [0.03125] * 16  # image size fraction
+        min_value = min(h,w)
         for s in scales:
-            mask_h = random.randint(1, int(h * s))  # create random masks
-            mask_w = random.randint(1, int(w * s))
+            #mask_h = random.randint(1, int(h * s))  # create random masks
+            #mask_w = random.randint(1, int(w * s))
+            
+            mask_h = random.randint(1, int(min_value * s))  # create random masks
+            mask_w = random.randint(1, int(min_value * s))
     
             # box
-            xmin = max(0, random.randint(0, w) - mask_w // 2)
-            ymin = max(0, random.randint(0, h) - mask_h // 2)
-            xmax = min(w, xmin + mask_w)
-            ymax = min(h, ymin + mask_h)
+            
+            #xmin = max(0, random.randint(0, w) - mask_w // 2)
+            xmin = max(0, random.randint(0, min_value) - mask_w // 2)
+            ymin = xmin
+            #ymin = max(0, random.randint(0, h) - mask_h // 2)
+            #xmax = min(w, xmin + mask_w)
+            xmax = min(min_value, xmin + mask_w)
+            
+            ymax = xmax
+            #ymax = min(h, ymin + mask_h)
     
             # apply random color mask
-            im[ymin:ymax, xmin:xmax] = [random.randint(64, 191) for _ in range(3)]
-    
+            #im[ymin:ymax, xmin:xmax] = [random.randint(64, 191) for _ in range(3)]
+            im[ymin:ymax, xmin:xmax] = list(zip(*im[ymin:ymax, xmin:xmax][::-1]))
+            ##Rotation Method https://stackoverflow.com/questions/8421337/rotating-a-two-dimensional-array-in-python
             # return unobscured labels
             #if len(labels) and s > 0.03:
                 #box = np.array([xmin, ymin, xmax, ymax], dtype=np.float32)
@@ -51,19 +62,20 @@ def cutout(im, p=1.0):
 
 if __name__ == "__main__":
     
-    infer_images=False
-    infer_video=True
+    infer_images=True
+    infer_video=False
+    
     if infer_images:
-        img_dir = "/home/ali/factory_video/2023-01-04-yolov-FPS10/0_imgs"
+        img_dir = "/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line/line"
         img_path_list = glob.glob(os.path.join(img_dir,"*.jpg"))
         
-        save_dir = "/home/ali/factory_video/2023-01-04-yolov-FPS10/cutout_img"
+        save_dir = "/home/ali/datasets/factory_data/2022-12-30-4cls-cropimg/crops_line_cutout_ver2"
         
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
             
         for i in range(len(img_path_list)):
-            print(img_path_list[i])
+            print("{}, {}".format(i,img_path_list[i]))
             
             im = cv2.imread(img_path_list[i])
             im_cutout = cutout(im)
@@ -78,7 +90,8 @@ if __name__ == "__main__":
             
             #im_cutout.numpy()
             cv2.imwrite(img_path, im_cutout)
-        
+            
+            
     if infer_video:
         
         img_size = 640
