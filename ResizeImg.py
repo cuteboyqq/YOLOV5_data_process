@@ -11,8 +11,9 @@ import os
 import shutil
 
 def Analysis_path(img_path):
-    img_name = img_path.split(os.sep)[-1]
-    return img_name
+    img_file = img_path.split(os.sep)[-1]
+    img_name = img_file.split(".")[0]
+    return img_file, img_name
  
 
 
@@ -22,12 +23,13 @@ def Resize_Images(img_size,img_dir,save_dir):
     for img_path in img_path_list:
         print(img_path)
         
-        img_name = Analysis_path(img_path)
+        img_file, img_name = Analysis_path(img_path)
         
         img = cv2.imread(img_path)
         img_resize = cv2.resize(img,(img_size,img_size),interpolation=cv2.INTER_AREA)
         
-        cv2.imwrite(os.path.join(save_dir,img_name) , img_resize)
+        new_img_file = img_name + ".png"
+        cv2.imwrite(os.path.join(save_dir,new_img_file) , img_resize)
         
 
 if __name__=="__main__":
